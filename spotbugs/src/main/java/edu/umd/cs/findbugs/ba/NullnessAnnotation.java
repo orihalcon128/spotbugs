@@ -37,9 +37,12 @@ public class NullnessAnnotation extends AnnotationEnumeration<NullnessAnnotation
         @Override
         boolean match(@DottedClassName String className) {
             return "android.support.annotation.Nullable".equals(className)
+                    || "androidx.annotation.Nullable".equals(className)
                     || "com.google.common.base.Nullable".equals(className)
                     || "org.eclipse.jdt.annotation.Nullable".equals(className)
                     || "org.jetbrains.annotations.Nullable".equals(className)
+                    || "org.checkerframework.checker.nullness.qual.Nullable".equals(className)
+                    || "org.checkerframework.checker.nullness.compatqual.NullableDecl".equals(className)
                     || className.endsWith("PossiblyNull")
                     || super.match(className);
         }

@@ -63,6 +63,8 @@ import org.dom4j.DocumentException;
 import org.dom4j.Element;
 import org.dom4j.Node;
 import org.dom4j.io.SAXReader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import edu.umd.cs.findbugs.ba.AnalysisContext;
 import edu.umd.cs.findbugs.charsets.UTF8;
@@ -107,7 +109,7 @@ public class PluginLoader {
     private static final String XPATH_PLUGIN_PROVIDER = "/FindbugsPlugin/@provider";
     private static final String XPATH_PLUGIN_PLUGINID = "/FindbugsPlugin/@pluginid";
 
-    private static final boolean DEBUG = SystemProperties.getBoolean("findbugs.debug.PluginLoader");
+    private static final Logger LOG = LoggerFactory.getLogger(PluginLoader.class);
     static boolean lazyInitialization = false;
     static LinkedList<PluginLoader> partiallyInitialized = new LinkedList<>();
 
@@ -143,10 +145,7 @@ public class PluginLoader {
 
     static HashSet<String> loadedPluginIds = new HashSet<>();
     static {
-        if (DEBUG) {
-            System.out.println("Debugging plugin loading. SpotBugs version "
-                    + Version.VERSION_STRING);
-        }
+        LOG.debug("Debugging plugin loading. SpotBugs version {}", Version.VERSION_STRING);
         loadInitialPlugins();
     }
 
@@ -228,14 +227,14 @@ public class PluginLoader {
         }
     }
 
-    private static void finishLazyInitialization()  {
+    private static void finishLazyInitialization() {
         if (!lazyInitialization) {
             throw new IllegalStateException("Not in lazy initialization mode");
         }
         while (!partiallyInitialized.isEmpty()) {
             boolean changed = false;
-            LinkedList<String>  unresolved = new LinkedList<>();
-            Set<String>  needed = new TreeSet<>();
+            LinkedList<String> unresolved = new LinkedList<>();
+            Set<String> needed = new TreeSet<>();
 
             for (Iterator<PluginLoader> i = partiallyInitialized.iterator(); i.hasNext();) {
                 PluginLoader pluginLoader = i.next();
@@ -267,8 +266,8 @@ public class PluginLoader {
                 System.err.println(msg);
                 AnalysisContext.logError(msg);
 
-                for (Iterator<PluginLoader> i = partiallyInitialized.iterator(); i.hasNext();) {
-                    Plugin.removePlugin(i.next().loadedFromUri);
+                for (PluginLoader pluginLoader : partiallyInitialized) {
+                    Plugin.removePlugin(pluginLoader.loadedFromUri);
                 }
                 partiallyInitialized.clear();
             }
@@ -298,7 +297,7 @@ public class PluginLoader {
         Manifest mf = null;
         File f = new File(url.getPath());
         // default: try with jar/zip/war etc files
-        if(!f.isDirectory()) {
+        if (!f.isDirectory()) {
             JarInputStream jis = null;
             try {
                 jis = new JarInputStream(url.openStream());
@@ -313,7 +312,7 @@ public class PluginLoader {
             // Allow plugins be loaded from "exploded jar" directories (e.g. while debugging
             // 3rd party FB plugin projects in Eclipse without packaging them to jars at all)
             File manifest = guessManifest(f);
-            if(manifest != null){
+            if (manifest != null) {
                 FileInputStream is = null;
                 try {
                     is = new FileInputStream(manifest);
@@ -325,20 +324,20 @@ public class PluginLoader {
                 }
             }
         }
-        if(mf != null){
+        if (mf != null) {
             try {
                 addClassPathFromManifest(url, urls, mf);
             } catch (MalformedURLException e) {
                 throw new PluginException("Failed loading manifest for plugin jar: " + url, e);
             }
         }
-        return urls.toArray(new URL[urls.size()]);
+        return urls.toArray(new URL[0]);
     }
 
     private static void addClassPathFromManifest(@Nonnull URL url, @Nonnull List<URL> urls,
             @Nonnull Manifest mf) throws MalformedURLException {
         Attributes atts = mf.getMainAttributes();
-        if (atts == null)  {
+        if (atts == null) {
             return;
         }
         String classPath = atts.getValue(Attributes.Name.CLASS_PATH);
@@ -360,13 +359,13 @@ public class PluginLoader {
     @CheckForNull
     private static File guessManifest(@Nonnull File parent) {
         File file = new File(parent, "MANIFEST.MF");
-        if(!file.isFile()){
+        if (!file.isFile()) {
             file = new File(parent, "META-INF/MANIFEST.MF");
         }
-        if(!file.isFile()){
+        if (!file.isFile()) {
             file = new File(parent, "../META-INF/MANIFEST.MF");
         }
-        if(file.isFile()){
+        if (file.isFile()) {
             return file;
         }
         return null;
@@ -424,10 +423,8 @@ public class PluginLoader {
         URL from;
         String findBugsClassFile = ClassName.toSlashedClassName(FindBugs.class) + ".class";
         URL me = FindBugs.class.getClassLoader().getResource(findBugsClassFile);
-        if (DEBUG) {
-            System.out.println("FindBugs.class loaded from " + me);
-        }
-        if(me == null) {
+        LOG.debug("FindBugs.class loaded from {}", me);
+        if (me == null) {
             throw new IllegalStateException("Failed to load " + findBugsClassFile);
         }
         try {
@@ -447,9 +444,7 @@ public class PluginLoader {
         } catch (MalformedURLException e) {
             throw new IllegalArgumentException("Failed to parse url: " + me);
         }
-        if (DEBUG) {
-            System.out.println("Core class files loaded from " + from);
-        }
+        LOG.debug("Core class files loaded from {}", from);
         return from;
     }
 
@@ -493,7 +488,7 @@ public class PluginLoader {
         return getPlugin();
     }
 
-    public Plugin getPlugin()  {
+    public Plugin getPlugin() {
         if (plugin == null) {
             throw new AssertionError("plugin not already loaded");
         }
@@ -528,16 +523,14 @@ public class PluginLoader {
     public URL getResource(String name) {
         if (isCorePlugin()) {
             URL url = getCoreResource(name);
-            if (url != null &&  IO.verifyURL(url)) {
+            if (url != null && IO.verifyURL(url)) {
                 return url;
             }
         }
         if (loadedFrom != null) {
             try {
                 URL url = resourceFromPlugin(loadedFrom, name);
-                if (DEBUG) {
-                    System.out.println("Trying to load " + name + " from " + url);
-                }
+                LOG.debug("Trying to load {} from {}", name, url);
                 if (IO.verifyURL(url)) {
                     return url;
                 }
@@ -550,10 +543,8 @@ public class PluginLoader {
         if (classLoaderForResources instanceof URLClassLoader) {
 
             URLClassLoader urlClassLoader = (URLClassLoader) classLoaderForResources;
-            if (DEBUG) {
-                System.out.println("Trying to load " + name + " using URLClassLoader.findResource");
-                System.out.println("  from urls: " + Arrays.asList(urlClassLoader.getURLs()));
-            }
+            LOG.debug("Trying to load {} using URLClassLoader.findResource", name);
+            LOG.debug("  from urls: {}", Arrays.asList(urlClassLoader.getURLs()));
             URL url = urlClassLoader.findResource(name);
             if (url == null) {
                 url = urlClassLoader.findResource("/" + name);
@@ -563,9 +554,7 @@ public class PluginLoader {
             }
         }
 
-        if (DEBUG) {
-            System.out.println("Trying to load " + name + " using ClassLoader.getResource");
-        }
+        LOG.debug("Trying to load {} using ClassLoader.getResource", name);
         URL url = classLoaderForResources.getResource(name);
         if (url == null) {
             url = classLoaderForResources.getResource("/" + name);
@@ -577,8 +566,7 @@ public class PluginLoader {
         return null;
     }
 
-    static @CheckForNull
-    URL getCoreResource(String name) {
+    static @CheckForNull URL getCoreResource(String name) {
         URL u = loadFromFindBugsPluginDir(name);
         if (u != null) {
             return u;
@@ -595,7 +583,7 @@ public class PluginLoader {
         if (u != null) {
             return u;
         }
-        u = PluginLoader.class.getResource("/"+name);
+        u = PluginLoader.class.getResource("/" + name);
         return u;
     }
 
@@ -619,20 +607,13 @@ public class PluginLoader {
                     return resourceFromPlugin(findbugsJar, slashedResourceName);
                 }
             } catch (ZipException e) {
-                if (DEBUG) {
-                    System.out.printf("Failed to load resourceFromFindbugsJar: %s is not valid zip file.%n", findbugsJar);
-                }
+                LOG.warn("Failed to load resourceFromFindbugsJar: {} is not valid zip file.", findbugsJar, e);
             } catch (IOException e) {
-            if (DEBUG) {
-                    System.out.printf("Failed to load resourceFromFindbugsJar: IOException was thrown at zip file (%s) loading.%n", findbugsJar);
-                }
+                LOG.warn("Failed to load resourceFromFindbugsJar: IOException was thrown at zip file {} loading.",
+                        findbugsJar, e);
             }
         } catch (MalformedURLException | URISyntaxException e) {
-            if (DEBUG) {
-                System.out.printf("Failed to load resourceFromFindbugsJar: "
-                        + "Resource name is %s, exception message is %s.%n",
-                        slashedResourceName, e.getMessage());
-            }
+            LOG.warn("Failed to load resourceFromFindbugsJar: Resource name is {}", slashedResourceName, e);
         }
         return null;
     }
@@ -657,8 +638,7 @@ public class PluginLoader {
         return new URL(jarPath);
     }
 
-    public static @CheckForNull
-    URL loadFromFindBugsEtcDir(String name) {
+    public static @CheckForNull URL loadFromFindBugsEtcDir(String name) {
 
         String findBugsHome = DetectorFactoryCollection.getFindBugsHome();
         if (findBugsHome != null) {
@@ -675,8 +655,7 @@ public class PluginLoader {
         return null;
     }
 
-    public static @CheckForNull
-    URL loadFromFindBugsPluginDir(String name) {
+    public static @CheckForNull URL loadFromFindBugsPluginDir(String name) {
 
         String findBugsHome = DetectorFactoryCollection.getFindBugsHome();
         if (findBugsHome != null) {
@@ -704,9 +683,7 @@ public class PluginLoader {
     }
 
     private Plugin init() throws PluginException {
-        if (DEBUG) {
-            System.out.println("Loading plugin from " + loadedFrom);
-        }
+        LOG.debug("Loading plugin from {}", loadedFrom);
         // Plugin descriptor (a.k.a, "findbugs.xml"). Defines
         // the bug detectors and bug patterns that the plugin provides.
         Document pluginDescriptor = getPluginDescriptor();
@@ -715,9 +692,7 @@ public class PluginLoader {
         Plugin constructedPlugin = constructMinimalPlugin(pluginDescriptor, messageCollectionList);
 
         // Success!
-        if (DEBUG) {
-            System.out.println("Loaded " + constructedPlugin.getPluginId() + " from " + loadedFrom);
-        }
+        LOG.debug("Loaded {} from {}", constructedPlugin.getPluginId(), loadedFrom);
         return constructedPlugin;
     }
 
@@ -730,12 +705,14 @@ public class PluginLoader {
         try {
             List<Node> componentNodeList = XMLUtil.selectNodes(pluginDescriptor, "/FindbugsPlugin/PluginComponent");
             for (Node componentNode : componentNodeList) {
-                @DottedClassName String componentKindname = componentNode.valueOf("@componentKind");
+                @DottedClassName
+                String componentKindname = componentNode.valueOf("@componentKind");
                 if (componentKindname == null) {
                     throw new PluginException("Missing @componentKind for " + plugin.getPluginId()
                             + " loaded from " + loadedFrom);
                 }
-                @DottedClassName String componentClassname = componentNode.valueOf("@componentClass");
+                @DottedClassName
+                String componentClassname = componentNode.valueOf("@componentClass");
                 if (componentClassname == null) {
                     throw new PluginException("Missing @componentClassname for " + plugin.getPluginId()
                             + " loaded from " + loadedFrom);
@@ -772,7 +749,7 @@ public class PluginLoader {
                         properties.setProperty(key, value);
                     }
 
-                    Class<?> componentKind =  classLoader.loadClass(componentKindname);
+                    Class<?> componentKind = classLoader.loadClass(componentKindname);
                     loadComponentPlugin(plugin, componentKind, componentClassname, componentId, disabled, description, details,
                             properties);
                 } catch (RuntimeException e) {
@@ -801,11 +778,11 @@ public class PluginLoader {
                     Element mainMessageNode = (Element) findMessageNode(messageCollectionList,
                             "/MessageCollection/FindBugsMain[@cmd='" + cmd
                             // + " and @class='" + className
-                            +"']/Description",
+                                    + "']/Description",
                             "Missing FindBugsMain description for cmd " + cmd);
                     String description = mainMessageNode.getTextTrim();
                     try {
-                        Class<?> mainClass =  classLoader.loadClass(className);
+                        Class<?> mainClass = classLoader.loadClass(className);
                         plugin.addFindBugsMain(mainClass, cmd, description, kind, analysis);
                     } catch (Exception e) {
                         String msg = "Unable to load FindBugsMain " + cmd +
@@ -870,7 +847,7 @@ public class PluginLoader {
         Node orderingConstraintsNode = pluginDescriptor.selectSingleNode("/FindbugsPlugin/OrderingConstraints");
         if (orderingConstraintsNode != null) {
             // Get inter-pass and intra-pass constraints
-            List<Element> elements =  XMLUtil.selectNodes(orderingConstraintsNode, "./SplitPass|./WithinPass");
+            List<Element> elements = XMLUtil.selectNodes(orderingConstraintsNode, "./SplitPass|./WithinPass");
             for (Element constraintElement : elements) {
                 // Create the selectors which determine which detectors are
                 // involved in the constraint
@@ -895,7 +872,7 @@ public class PluginLoader {
         // register global Category descriptions
 
         List<Node> categoryNodeListGlobal = XMLUtil.selectNodes(pluginDescriptor, "/FindbugsPlugin/BugCategory");
-        for(Node categoryNode : categoryNodeListGlobal) {
+        for (Node categoryNode : categoryNodeListGlobal) {
             String key = categoryNode.valueOf("@category");
             if ("".equals(key)) {
                 throw new PluginException("BugCategory element with missing category attribute");
@@ -911,9 +888,7 @@ public class PluginLoader {
 
         for (Document messageCollection : messageCollectionList) {
             List<Node> categoryNodeList = XMLUtil.selectNodes(messageCollection, "/MessageCollection/BugCategory");
-            if (DEBUG) {
-                System.out.println("found " + categoryNodeList.size() + " categories in " + plugin.getPluginId());
-            }
+            LOG.debug("found {} categories in {}", categoryNodeList.size(), plugin.getPluginId());
             for (Node categoryNode : categoryNodeList) {
                 String key = categoryNode.valueOf("@category");
                 if ("".equals(key)) {
@@ -926,30 +901,22 @@ public class PluginLoader {
                     String abbrev = getChildText(categoryNode, "Abbreviation");
                     if (bc.getAbbrev() == null) {
                         bc.setAbbrev(abbrev);
-                        if (DEBUG) {
-                            System.out.println("category " + key + " abbrev -> " + abbrev);
-                        }
-                    } else if (DEBUG) {
-                        System.out.println("rejected abbrev '" + abbrev + "' for category " + key + ": " + bc.getAbbrev());
+                        LOG.debug("category {} abbrev -> {}", key, abbrev);
+                    } else {
+                        LOG.debug("rejected abbrev '{}' for category {}: {}", abbrev, key, bc.getAbbrev());
                     }
                 } catch (PluginException pe) {
-                    if (DEBUG)
-                    {
-                        System.out.println("missing Abbreviation for category " + key + "/" + shortDesc);
-                        // do nothing else -- Abbreviation is required, but handle
-                        // its omission gracefully
-                    }
+                    System.out.println("missing Abbreviation for category " + key + "/" + shortDesc);
+                    // do nothing else -- Abbreviation is required, but handle
+                    // its omission gracefully
                 }
                 try {
                     String details = getChildText(categoryNode, "Details");
                     if (bc.getDetailText() == null) {
                         bc.setDetailText(details);
-                        if (DEBUG) {
-                            System.out.println("category " + key + " details -> " + details);
-                        }
-                    } else if (DEBUG) {
-                        System.out.println("rejected details [" + details + "] for category " + key + ": [" + bc.getDetailText()
-                                + ']');
+                        LOG.debug("category {} details -> {}", key, details);
+                    } else {
+                        LOG.debug("rejected details [{}] for category {}: [{}]", details, key, bc.getDetailText());
                     }
                 } catch (PluginException pe) {
                     // do nothing -- LongDescription is optional
@@ -970,7 +937,7 @@ public class PluginLoader {
             String query = "/MessageCollection/BugPattern[@type='" + type + "']";
             Node messageNode = findMessageNode(messageCollectionList, query, "messages.xml missing BugPattern element for type "
                     + type);
-            Node bugsUrlNode = messageNode.getDocument().selectSingleNode("/MessageCollection/Plugin/"+(experimental?"AllBugsUrl":"BugsUrl"));
+            Node bugsUrlNode = messageNode.getDocument().selectSingleNode("/MessageCollection/Plugin/" + (experimental ? "AllBugsUrl" : "BugsUrl"));
 
             String bugsUrl = bugsUrlNode == null ? null : bugsUrlNode.getText();
 
@@ -1049,7 +1016,7 @@ public class PluginLoader {
                 }
 
                 plugin.setEngineRegistrarClass(engineRegistrarClass
-                        .<IAnalysisEngineRegistrar> asSubclass(IAnalysisEngineRegistrar.class));
+                        .<IAnalysisEngineRegistrar>asSubclass(IAnalysisEngineRegistrar.class));
             } catch (ClassNotFoundException e) {
                 throw new PluginException("Could not instantiate analysis engine registrar class: " + e, e);
             }
@@ -1063,9 +1030,7 @@ public class PluginLoader {
                 // https://sourceforge.net/tracker/?func=detail&aid=2816102&group_id=96405&atid=614693
                 // plugin can not have bugrank.txt. In this case, an empty
                 // bugranker will be created
-                if (DEBUG) {
-                    System.out.println("No " + BugRanker.FILENAME + " for plugin " + plugin.getPluginId());
-                }
+                LOG.debug("No {} for plugin {}", BugRanker.FILENAME, plugin.getPluginId());
             }
             BugRanker ranker = new BugRanker(bugRankURL);
             plugin.setBugRanker(ranker);
@@ -1157,7 +1122,7 @@ public class PluginLoader {
             constructedPlugin.setDetailedDescription(detailedDescription.getText().trim());
         }
         List<Node> globalOptionNodes = XMLUtil.selectNodes(pluginDescriptor, "/FindbugsPlugin/GlobalOptions/Property");
-        for(Node optionNode : globalOptionNodes) {
+        for (Node optionNode : globalOptionNodes) {
             String key = optionNode.valueOf("@key");
             String value = optionNode.getText().trim();
             constructedPlugin.setMyGlobalOption(key, value);
@@ -1174,9 +1139,7 @@ public class PluginLoader {
         if (findbugsXML_URL == null) {
             throw new PluginException("Couldn't find \"" + name + "\" in plugin " + this);
         }
-        if (DEBUG) {
-            System.out.println("PluginLoader found " + name + " at: " + findbugsXML_URL);
-        }
+        LOG.debug("PluginLoader found {} at: {}", name, findbugsXML_URL);
 
         if (jarName != null && !findbugsXML_URL.toString().contains(jarName)
                 && !(corePlugin && findbugsXML_URL.toString().endsWith("etc/findbugs.xml"))) {
@@ -1189,21 +1152,18 @@ public class PluginLoader {
         }
         SAXReader reader = new SAXReader();
 
-        Reader r = null;
-        try {
-            r = UTF8.bufferedReader(findbugsXML_URL.openStream());
+        try (InputStream input = IO.openNonCachedStream(findbugsXML_URL);
+                Reader r = UTF8.bufferedReader(input)) {
             pluginDescriptor = reader.read(r);
         } catch (DocumentException e) {
             throw new PluginException("Couldn't parse \"" + findbugsXML_URL + "\" using " + reader.getClass().getName(), e);
         } catch (IOException e) {
             throw new PluginException("Couldn't open \"" + findbugsXML_URL + "\"", e);
-        } finally {
-            IO.close(r);
         }
         return pluginDescriptor;
     }
 
-    private  static  List<String> getPotentialMessageFiles() {
+    private static List<String> getPotentialMessageFiles() {
         // Load the message collections
         Locale locale = Locale.getDefault();
         String language = locale.getLanguage();
@@ -1270,9 +1230,9 @@ public class PluginLoader {
 
     private DetectorFactorySelector getConstraintSelector(Element constraintElement, Plugin plugin,
             String singleDetectorElementName/*
-             * , String
-             * detectorCategoryElementName
-             */) throws PluginException {
+                                            * , String
+                                            * detectorCategoryElementName
+                                            */) throws PluginException {
         Node node = constraintElement.selectSingleNode("./" + singleDetectorElementName);
         if (node != null) {
             String detectorClass = node.valueOf("@class");
@@ -1319,14 +1279,10 @@ public class PluginLoader {
         URL messageURL = getResource(filename);
         if (messageURL != null) {
             SAXReader reader = new SAXReader();
-            try {
-                Reader stream = UTF8.bufferedReader(messageURL.openStream());
+            try (InputStream input = IO.openNonCachedStream(messageURL);
+                    Reader stream = UTF8.bufferedReader(input)) {
                 Document messageCollection;
-                try {
-                    messageCollection = reader.read(stream);
-                } finally {
-                    stream.close();
-                }
+                messageCollection = reader.read(stream);
                 messageCollectionList.add(messageCollection);
             } catch (IOException | DocumentException e) {
                 throw new PluginException("Couldn't parse \"" + messageURL + "\"", e);
@@ -1345,7 +1301,7 @@ public class PluginLoader {
         throw new PluginException(missingMsg);
     }
 
-    private static  String findMessageText(List<Document> messageCollectionList, String xpath, String missingMsg) {
+    private static String findMessageText(List<Document> messageCollectionList, String xpath, String missingMsg) {
         for (Document document : messageCollectionList) {
             Node node = document.selectSingleNode(xpath);
             if (node != null) {
@@ -1496,11 +1452,9 @@ public class PluginLoader {
             getPluginLoader(u, PluginLoader.class.getClassLoader(), initial, optional);
         } catch (DuplicatePluginIdException ignored) {
             assert true;
-        }catch (PluginException e) {
+        } catch (PluginException e) {
             AnalysisContext.logError("Unable to load plugin from " + u, e);
-            if (DEBUG) {
-                e.printStackTrace();
-            }
+            LOG.debug("Unable to load plugin from {}", u, e);
         }
     }
 
@@ -1590,9 +1544,7 @@ public class PluginLoader {
             throw new IllegalArgumentException(message);
         }
 
-        ZipFile zip = null;
-        try {
-            zip = new ZipFile(file);
+        try (ZipFile zip = new ZipFile(file)) {
             ZipEntry findbugsXML = zip.getEntry("findbugs.xml");
             if (findbugsXML == null) {
                 throw new IllegalArgumentException(
@@ -1623,8 +1575,6 @@ public class PluginLoader {
             throw new IllegalArgumentException(e);
         } catch (IOException e) {
             throw new IllegalArgumentException(e);
-        } finally {
-            Util.closeSilently(zip);
         }
     }
 
@@ -1639,4 +1589,3 @@ public class PluginLoader {
         }
     }
 }
-

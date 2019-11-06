@@ -39,6 +39,7 @@ import java.util.zip.GZIPOutputStream;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.WillCloseWhenClosed;
 
 import org.dom4j.DocumentException;
 
@@ -150,7 +151,8 @@ public class TextUICommandLine extends FindBugsCommandLine {
     public TextUICommandLine() {
         addSwitch("-showPlugins", "show list of available detector plugins");
 
-        addOption("-userPrefs", "filename", "user preferences file, e.g /path/to/project/.settings/edu.umd.cs.findbugs.core.prefs for Eclipse projects");
+        addOption("-userPrefs", "filename",
+                "user preferences file, e.g /path/to/project/.settings/edu.umd.cs.findbugs.core.prefs for Eclipse projects");
 
         startOptionGroup("Output options:");
         addSwitch("-justListOptions", "throw an exception that lists the provided options");
@@ -370,7 +372,7 @@ public class TextUICommandLine extends FindBugsCommandLine {
         } else if ("-version".equals(option)) {
             printVersion = true;
         } else {
-            if(DEBUG) {
+            if (DEBUG) {
                 System.out.println("XXX: " + option);
             }
             super.handleOption(option, optionExtraPart);
@@ -378,6 +380,7 @@ public class TextUICommandLine extends FindBugsCommandLine {
     }
 
     protected @CheckForNull File outputFile;
+
     @SuppressFBWarnings("DM_EXIT")
     @Override
     protected void handleOptionWithArgument(String option, String argument) throws IOException {
@@ -399,6 +402,7 @@ public class TextUICommandLine extends FindBugsCommandLine {
             }
 
             try {
+                @WillCloseWhenClosed
                 OutputStream oStream = new BufferedOutputStream(new FileOutputStream(outputFile));
                 if (fileName.endsWith(".gz")) {
                     oStream = new GZIPOutputStream(oStream);
@@ -550,7 +554,7 @@ public class TextUICommandLine extends FindBugsCommandLine {
                 sourceDirs.add(new File(tok.nextToken()).getAbsolutePath());
             }
             project.addSourceDirs(sourceDirs);
-        } else if("-userPrefs".equals(option)){
+        } else if ("-userPrefs".equals(option)) {
             UserPreferences prefs = UserPreferences.createDefaultUserPreferences();
             prefs.read(new FileInputStream(argument));
             project.setConfiguration(prefs);
@@ -627,7 +631,7 @@ public class TextUICommandLine extends FindBugsCommandLine {
 
             textuiBugReporter = xmlBugReporter;
         }
-        break;
+            break;
         case EMACS_REPORTER:
             textuiBugReporter = new EmacsBugReporter();
             break;
@@ -709,8 +713,7 @@ public class TextUICommandLine extends FindBugsCommandLine {
      */
     public void handleXArgs() throws IOException {
         if (getXargs()) {
-            BufferedReader in = UTF8.bufferedReader(System.in);
-            try {
+            try (BufferedReader in = UTF8.bufferedReader(System.in)) {
                 while (true) {
                     String s = in.readLine();
                     if (s == null) {
@@ -718,8 +721,6 @@ public class TextUICommandLine extends FindBugsCommandLine {
                     }
                     project.addFile(s);
                 }
-            } finally {
-                Util.closeSilently(in);
             }
         }
     }
@@ -731,8 +732,7 @@ public class TextUICommandLine extends FindBugsCommandLine {
      * @throws IOException
      */
     private void handleAuxClassPathFromFile(String filePath) throws IOException {
-        BufferedReader in = new BufferedReader(UTF8.fileReader(filePath));
-        try {
+        try (BufferedReader in = new BufferedReader(UTF8.fileReader(filePath))) {
             while (true) {
                 String s = in.readLine();
                 if (s == null) {
@@ -740,8 +740,6 @@ public class TextUICommandLine extends FindBugsCommandLine {
                 }
                 project.addAuxClasspathEntry(s);
             }
-        } finally {
-            Util.closeSilently(in);
         }
     }
 
@@ -752,8 +750,7 @@ public class TextUICommandLine extends FindBugsCommandLine {
      * @throws IOException
      */
     private void handleAnalyzeFromFile(String filePath) throws IOException {
-        BufferedReader in = new BufferedReader(UTF8.fileReader(filePath));
-        try {
+        try (BufferedReader in = new BufferedReader(UTF8.fileReader(filePath))) {
             while (true) {
                 String s = in.readLine();
                 if (s == null) {
@@ -761,8 +758,6 @@ public class TextUICommandLine extends FindBugsCommandLine {
                 }
                 project.addFile(s);
             }
-        } finally {
-            Util.closeSilently(in);
         }
     }
 

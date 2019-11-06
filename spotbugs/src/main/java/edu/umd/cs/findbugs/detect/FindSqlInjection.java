@@ -72,6 +72,7 @@ import edu.umd.cs.findbugs.classfile.Global;
 import edu.umd.cs.findbugs.classfile.MethodDescriptor;
 import edu.umd.cs.findbugs.detect.BuildStringPassthruGraph.MethodParameter;
 import edu.umd.cs.findbugs.detect.BuildStringPassthruGraph.StringPassthruDatabase;
+import edu.umd.cs.findbugs.util.Values;
 import edu.umd.cs.findbugs.visitclass.PreorderVisitor;
 
 /**
@@ -199,12 +200,12 @@ public class FindSqlInjection implements Detector {
         this.bugReporter = bugReporter;
         this.bugAccumulator = new BugAccumulator(bugReporter);
         Set<MethodParameter> baseExecuteMethods = new HashSet<>();
-        for(MethodDescriptor executeMethod : EXECUTE_METHODS) {
+        for (MethodDescriptor executeMethod : EXECUTE_METHODS) {
             baseExecuteMethods.add(new MethodParameter(executeMethod, 0));
         }
         executeMethods = Global.getAnalysisCache().getDatabase(StringPassthruDatabase.class).findLinkedMethods(baseExecuteMethods);
         Set<MethodParameter> basePrepareMethods = new HashSet<>();
-        for(String signature : PREPARE_STATEMENT_SIGNATURES) {
+        for (String signature : PREPARE_STATEMENT_SIGNATURES) {
             basePrepareMethods.add(new MethodParameter(new MethodDescriptor("java/sql/Connection", "prepareStatement", signature), 0));
         }
         preparedStatementMethods = Global.getAnalysisCache().getDatabase(StringPassthruDatabase.class).findLinkedMethods(basePrepareMethods);
@@ -215,7 +216,7 @@ public class FindSqlInjection implements Detector {
     @Override
     public void visitClassContext(ClassContext classContext) {
         JavaClass javaClass = classContext.getJavaClass();
-        if(!PreorderVisitor.hasInterestingMethod(javaClass.getConstantPool(), allMethods)) {
+        if (!PreorderVisitor.hasInterestingMethod(javaClass.getConstantPool(), allMethods)) {
             return;
         }
         Method[] methodList = javaClass.getMethods();
@@ -258,7 +259,7 @@ public class FindSqlInjection implements Detector {
         return false;
     }
 
-    private boolean isConstantStringLoad(Location location, ConstantPoolGen cpg)  {
+    private boolean isConstantStringLoad(Location location, ConstantPoolGen cpg) {
         Instruction ins = location.getHandle().getInstruction();
         if (ins instanceof LDC) {
             LDC load = (LDC) ins;
@@ -283,8 +284,7 @@ public class FindSqlInjection implements Detector {
         return closeQuotePattern.matcher(s).find();
     }
 
-    private StringAppendState updateStringAppendState(Location location, ConstantPoolGen cpg, StringAppendState stringAppendState)
-    {
+    private StringAppendState updateStringAppendState(Location location, ConstantPoolGen cpg, StringAppendState stringAppendState) {
         InstructionHandle handle = location.getHandle();
         Instruction ins = handle.getInstruction();
         if (!isConstantStringLoad(location, cpg)) {
@@ -337,7 +337,7 @@ public class FindSqlInjection implements Detector {
                 if (sig2.indexOf("java/lang/String") >= 0) {
                     String methodName = inv.getMethodName(cpg);
                     String className = inv.getClassName(cpg);
-                    if ("valueOf".equals(methodName) && "java.lang.String".equals(className)
+                    if ("valueOf".equals(methodName) && Values.DOTTED_JAVA_LANG_STRING.equals(className)
                             && "(Ljava/lang/Object;)Ljava/lang/String;".equals(sig1)) {
                         try {
                             TypeDataflow typeDataflow = classContext.getTypeDataflow(method);
@@ -358,8 +358,8 @@ public class FindSqlInjection implements Detector {
                         } catch (CheckedAnalysisException e) {
                             stringAppendState.setSawTaint(handle);
                         }
-                    } else if (className.startsWith("java.lang.String") || "java.lang.Long".equals(className)
-                            || "java.lang.Integer".equals(className) || "java.lang.Float".equals(className)
+                    } else if (className.startsWith(Values.DOTTED_JAVA_LANG_STRING) || "java.lang.Long".equals(className)
+                            || Values.DOTTED_JAVA_LANG_INTEGER.equals(className) || "java.lang.Float".equals(className)
                             || "java.lang.Double".equals(className) || "java.lang.Short".equals(className)
                             || "java.lang.Byte".equals(className) || "java.lang.Character".equals(className)) {
                         // ignore it
@@ -415,8 +415,7 @@ public class FindSqlInjection implements Detector {
         return false;
     }
 
-    private @CheckForNull
-    InstructionHandle getPreviousInstruction(InstructionHandle handle, boolean skipNops) {
+    private @CheckForNull InstructionHandle getPreviousInstruction(InstructionHandle handle, boolean skipNops) {
         while (handle.getPrev() != null) {
             handle = handle.getPrev();
             Instruction prevIns = handle.getInstruction();
@@ -427,8 +426,7 @@ public class FindSqlInjection implements Detector {
         return null;
     }
 
-    private @CheckForNull
-    Location getPreviousLocation(CFG cfg, Location startLocation, boolean skipNops) {
+    private @CheckForNull Location getPreviousLocation(CFG cfg, Location startLocation, boolean skipNops) {
         Location loc = startLocation;
         InstructionHandle prev = getPreviousInstruction(loc.getHandle(), skipNops);
         if (prev != null) {
@@ -520,12 +518,12 @@ public class FindSqlInjection implements Detector {
             int paramNumber;
             // Currently only one method parameter is checked, though it's the most common case
             // TODO: support methods which take several SQL statements
-            if(params != null) {
+            if (params != null) {
                 executeMethod = false;
                 paramNumber = params[0];
             } else {
                 params = executeMethods.get(md);
-                if(params != null) {
+                if (params != null) {
                     executeMethod = true;
                     paramNumber = params[0];
                 } else {
@@ -558,18 +556,18 @@ public class FindSqlInjection implements Detector {
 
     private Location getValueNumberCreationLocation(ValueNumberDataflow vnd, ValueNumber vn) {
         ConstantPoolGen cpg = vnd.getCFG().getMethodGen().getConstantPool();
-        for(Iterator<Location> it = vnd.getCFG().locationIterator(); it.hasNext(); ) {
+        for (Iterator<Location> it = vnd.getCFG().locationIterator(); it.hasNext();) {
             Location loc = it.next();
-            if(loc.getHandle().getInstruction().produceStack(cpg) != 1) {
+            if (loc.getHandle().getInstruction().produceStack(cpg) != 1) {
                 continue;
             }
             try {
                 ValueNumberFrame vnf = vnd.getFactAfterLocation(loc);
-                if(vnf.getTopValue().equals(vn)) {
+                if (vnf.getTopValue().equals(vn)) {
                     return loc;
                 }
             } catch (DataflowAnalysisException e) {
-                AnalysisContext.logError("While analyzing "+vnd.getCFG().getMethodGen()+" at "+loc, e);
+                AnalysisContext.logError("While analyzing " + vnd.getCFG().getMethodGen() + " at " + loc, e);
             }
         }
         return null;
@@ -580,14 +578,14 @@ public class FindSqlInjection implements Detector {
         Set<ValueNumber> passthruParams = new HashSet<>();
 
         int[] p = preparedStatementMethods.get(xMethod);
-        if(p != null) {
-            for(int pNum : p) {
+        if (p != null) {
+            for (int pNum : p) {
                 passthruParams.add(vnd.getAnalysis().getEntryValueForParameter(pNum));
             }
         }
         p = executeMethods.get(xMethod);
-        if(p != null) {
-            for(int pNum : p) {
+        if (p != null) {
+            for (int pNum : p) {
                 passthruParams.add(vnd.getAnalysis().getEntryValueForParameter(pNum));
             }
         }
@@ -598,4 +596,3 @@ public class FindSqlInjection implements Detector {
     public void report() {
     }
 }
-

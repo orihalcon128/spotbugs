@@ -126,8 +126,7 @@ public class CFG extends AbstractGraph<Edge, BasicBlock> implements Debug {
             while (next == null) {
                 // Make sure we have an instruction iterator
                 if (instructionIter == null) {
-                    if (!blockIter.hasNext())
-                    {
+                    if (!blockIter.hasNext()) {
                         return; // At end
                     }
                     curBlock = blockIter.next();
@@ -136,8 +135,7 @@ public class CFG extends AbstractGraph<Edge, BasicBlock> implements Debug {
 
                 if (instructionIter.hasNext()) {
                     next = new Location(instructionIter.next(), curBlock);
-                }
-                else {
+                } else {
                     instructionIter = null; // Go to next block
                 }
             }
@@ -450,16 +448,14 @@ public class CFG extends AbstractGraph<Edge, BasicBlock> implements Debug {
         BasicBlock basicBlock = (handle.getInstruction() instanceof ATHROW) ? exceptionEdge.getSource()
                 : getSuccessorWithEdgeType(exceptionEdge.getSource(), EdgeTypes.FALL_THROUGH_EDGE);
 
-        if (basicBlock == null) {
-            if (removedEdgeList != null) {
-                // The fall-through edge might have been removed during
-                // CFG pruning. Look for it in the removed edge list.
-                for (Edge removedEdge : removedEdgeList) {
-                    if (removedEdge.getType() == EdgeTypes.FALL_THROUGH_EDGE
-                            && removedEdge.getSource() == exceptionEdge.getSource()) {
-                        basicBlock = removedEdge.getTarget();
-                        break;
-                    }
+        if (basicBlock == null && removedEdgeList != null) {
+            // The fall-through edge might have been removed during
+            // CFG pruning. Look for it in the removed edge list.
+            for (Edge removedEdge : removedEdgeList) {
+                if (removedEdge.getType() == EdgeTypes.FALL_THROUGH_EDGE
+                        && removedEdge.getSource() == exceptionEdge.getSource()) {
+                    basicBlock = removedEdge.getTarget();
+                    break;
                 }
             }
         }
@@ -507,7 +503,7 @@ public class CFG extends AbstractGraph<Edge, BasicBlock> implements Debug {
         return getEdgeWithType(outgoingEdgeIterator(basicBlock), edgeType);
     }
 
-    private Edge getEdgeWithType(Iterator<Edge> iter,  @Type int edgeType) {
+    private Edge getEdgeWithType(Iterator<Edge> iter, @Type int edgeType) {
         while (iter.hasNext()) {
             Edge edge = iter.next();
             if (edge.getType() == edgeType) {
@@ -645,4 +641,3 @@ public class CFG extends AbstractGraph<Edge, BasicBlock> implements Debug {
     }
 
 }
-

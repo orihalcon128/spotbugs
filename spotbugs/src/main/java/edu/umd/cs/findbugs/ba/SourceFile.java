@@ -190,10 +190,7 @@ public class SourceFile {
             return;
         }
 
-        InputStream in = null;
-
-        try {
-            in = dataSource.open();
+        try (InputStream in = dataSource.open()) {
             ByteArrayOutputStream out = new ByteArrayOutputStream();
 
             addLineOffset(0); // Line 0 starts at offset 0
@@ -210,10 +207,6 @@ public class SourceFile {
             mapBuilder.eof();
 
             setData(out.toByteArray());
-        } finally {
-            if (in != null) {
-                in.close();
-            }
         }
 
     }
@@ -232,4 +225,3 @@ public class SourceFile {
         return dataSource.getLastModified();
     }
 }
-

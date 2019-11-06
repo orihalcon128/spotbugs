@@ -121,6 +121,8 @@ public class BuildCheckReturnAnnotationDatabase extends AnnotationVisitor {
             n = CheckReturnValueAnnotation.parse(getAnnotationParameterAsString(map, "priority"));
         } else if ("CheckReturnValue".equals(annotationClassSimpleName)) {
             n = CheckReturnValueAnnotation.CHECK_RETURN_VALUE_MEDIUM;
+        } else if ("CanIgnoreReturnValue".equals(annotationClassSimpleName)) {
+            n = CheckReturnValueAnnotation.CHECK_RETURN_VALUE_IGNORE;
         } else {
             return;
         }
@@ -129,10 +131,10 @@ public class BuildCheckReturnAnnotationDatabase extends AnnotationVisitor {
         }
         if (visitingMethod()) {
             AnalysisContext.currentAnalysisContext().getCheckReturnAnnotationDatabase()
-            .addDirectAnnotation(XFactory.createXMethod(this), n);
+                    .addDirectAnnotation(XFactory.createXMethod(this), n);
         } else {
             AnalysisContext.currentAnalysisContext().getCheckReturnAnnotationDatabase()
-            .addDefaultAnnotation(Target.METHOD, getDottedClassName(), n);
+                    .addDefaultAnnotation(Target.METHOD, getDottedClassName(), n);
         }
 
     }
@@ -142,7 +144,7 @@ public class BuildCheckReturnAnnotationDatabase extends AnnotationVisitor {
             CheckReturnValueAnnotation n = CheckReturnValueAnnotation.parse(getAnnotationParameterAsString(map, "priority"));
             if (n != null) {
                 AnalysisContext.currentAnalysisContext().getCheckReturnAnnotationDatabase()
-                .addDefaultAnnotation(annotationTarget, getDottedClassName(), n);
+                        .addDefaultAnnotation(annotationTarget, getDottedClassName(), n);
             }
 
         }

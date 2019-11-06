@@ -22,7 +22,6 @@ package edu.umd.cs.findbugs.workflow;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -53,9 +52,6 @@ public class Churn {
     }
 
     String getKey(BugInstance b) {
-        if (false) {
-            return b.getType();
-        }
         String result = b.getCategoryAbbrev();
         if ("C".equals(result) || "N".equals(result)) {
             return result;
@@ -112,9 +108,7 @@ public class Churn {
         aliveAt = new int[(int) bugCollection.getSequenceNumber() + 1];
         diedAfter = new int[(int) bugCollection.getSequenceNumber() + 1];
 
-        for (Iterator<BugInstance> j = bugCollection.iterator(); j.hasNext();) {
-            BugInstance bugInstance = j.next();
-
+        for (BugInstance bugInstance : bugCollection) {
             String key = getKey(bugInstance);
             Data d = data.get(key);
             if (d == null) {

@@ -35,6 +35,7 @@ import org.apache.bcel.classfile.Method;
 import org.apache.bcel.generic.ATHROW;
 import org.apache.bcel.generic.ConstantPoolGen;
 import org.apache.bcel.generic.FieldInstruction;
+import org.apache.bcel.generic.INVOKEDYNAMIC;
 import org.apache.bcel.generic.Instruction;
 import org.apache.bcel.generic.InstructionHandle;
 import org.apache.bcel.generic.InstructionTargeter;
@@ -105,7 +106,7 @@ public class NoiseNullDeref implements Detector, UseAnnotationDatabase, NullDere
 
     private static final boolean MARK_DOOMED = SystemProperties.getBoolean("fnd.markdoomed", true);
 
-    private static final String METHOD = SystemProperties.getProperty("fnd.method");
+    private static final String METHOD_NAME = SystemProperties.getProperty("fnd.method");
 
     private static final String CLASS = SystemProperties.getProperty("fnd.class");
 
@@ -150,7 +151,7 @@ public class NoiseNullDeref implements Detector, UseAnnotationDatabase, NullDere
 
                 currentMethod = SignatureConverter.convertMethodSignature(jclass, method);
 
-                if (METHOD != null && !method.getName().equals(METHOD)) {
+                if (METHOD_NAME != null && !method.getName().equals(METHOD_NAME)) {
                     continue;
                 }
                 if (DEBUG || DEBUG_NULLARG) {
@@ -269,6 +270,9 @@ public class NoiseNullDeref implements Detector, UseAnnotationDatabase, NullDere
         final ConstantPoolGen cpg = classContext.getConstantPoolGen();
 
         if (ins instanceof InvokeInstruction) {
+            if (ins instanceof INVOKEDYNAMIC) {
+                return;
+            }
             InvokeInstruction iins = (InvokeInstruction) ins;
             XMethod invokedMethod = XFactory.createXMethod((InvokeInstruction) ins, cpg);
             cause = MethodAnnotation.fromXMethod(invokedMethod);
@@ -470,10 +474,7 @@ public class NoiseNullDeref implements Detector, UseAnnotationDatabase, NullDere
         }
         catchSize = Util.getSizeOfSurroundingTryBlock(classContext.getJavaClass().getConstantPool(), method.getCode(),
                 "java/lang/Throwable", pc);
-        if (catchSize < 5) {
-            return true;
-        }
-        return false;
+        return catchSize < 5;
 
     }
 }

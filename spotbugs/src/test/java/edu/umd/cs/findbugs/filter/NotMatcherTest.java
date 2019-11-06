@@ -24,7 +24,7 @@ package edu.umd.cs.findbugs.filter;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
-import static org.junit.matchers.JUnitMatchers.containsString;
+import static org.hamcrest.CoreMatchers.containsString;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -81,7 +81,7 @@ public class NotMatcherTest {
         assertSame("Should return child matcher.", wrappedMatcher, notMatcher.originalMatcher());
     }
 
-    @Test(expected=IllegalStateException.class)
+    @Test(expected = IllegalStateException.class)
     public void throwsExceptionWhenTryingToGetNonExistentChildMatcher() {
         new NotMatcher().originalMatcher();
     }

@@ -122,6 +122,10 @@ public class DetectorFactory {
 
     private final boolean defEnabled;
 
+    /**
+     * @deprecated This attribute is not used actively, and could be removed in future release
+     */
+    @Deprecated
     private final String speed;
 
     private final String reports;
@@ -217,9 +221,7 @@ public class DetectorFactory {
      *         interface
      */
     public boolean isDetectorClassSubtypeOf(Class<?> otherClass) {
-        if (FindBugs.isNoAnalysis()) {
-            throw new IllegalStateException("No analysis specified");
-        }
+        checkForNoAnalysis();
         return otherClass.isAssignableFrom(detectorCreator.getDetectorClass());
     }
 
@@ -322,6 +324,7 @@ public class DetectorFactory {
 
     /**
      * Get the speed of the Detector produced by this factory.
+     * @deprecated This attribute is not used actively, and could be removed in future release
      */
     @Deprecated
     public String getSpeed() {
@@ -377,9 +380,7 @@ public class DetectorFactory {
      */
     @Deprecated
     public Detector create(BugReporter bugReporter) {
-        if (FindBugs.isNoAnalysis()) {
-            throw new IllegalStateException("No analysis specified");
-        }
+        checkForNoAnalysis();
         return detectorCreator.createDetector(bugReporter);
     }
 
@@ -391,9 +392,7 @@ public class DetectorFactory {
      * @return the Detector2
      */
     public Detector2 createDetector2(BugReporter bugReporter) {
-        if (FindBugs.isNoAnalysis()) {
-            throw new IllegalStateException("No analysis specified");
-        }
+        checkForNoAnalysis();
         return detectorCreator.createDetector2(bugReporter);
     }
 
@@ -409,12 +408,17 @@ public class DetectorFactory {
         return className;
     }
 
+    private void checkForNoAnalysis() {
+        if (FindBugs.isNoAnalysis()) {
+            throw new IllegalStateException("No analysis specified");
+        }
+    }
+
     /**
      * Get the full name of the detector. This is the name of the detector
      * class, with package qualification.
      */
-    public @Nonnull @DottedClassName
-    String getFullName() {
+    public @Nonnull @DottedClassName String getFullName() {
         return className;
     }
 
@@ -438,9 +442,6 @@ public class DetectorFactory {
         if (!className.equals(other.className)) {
             return false;
         }
-        if (!plugin.equals(other.plugin)) {
-            return false;
-        }
-        return true;
+        return plugin.equals(other.plugin);
     }
 }

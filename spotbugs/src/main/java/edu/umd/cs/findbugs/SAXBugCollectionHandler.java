@@ -390,7 +390,7 @@ public class SAXBugCollectionHandler extends DefaultHandler {
     }
 
     private boolean isCompoundElementTag(String qName) {
-        return outerElementTags .contains(qName);
+        return outerElementTags.contains(qName);
     }
 
     private boolean isTopLevelFilter(String qName) {
@@ -497,7 +497,7 @@ public class SAXBugCollectionHandler extends DefaultHandler {
                     addMatcher(new ClassMatcher(classMatch));
                 }
             }
-        } else if("Not".equals(qName)) {
+        } else if ("Not".equals(qName)) {
             NotMatcher matcher = new NotMatcher();
             pushCompoundMatcherAsChild(matcher);
         } else if ("Source".equals(qName)) {
@@ -700,7 +700,7 @@ public class SAXBugCollectionHandler extends DefaultHandler {
                     bugCollection.addError(analysisError);
                 } else if (BugCollection.ERROR_ELEMENT_NAME.equals(qName)) {
                     if (stackTrace.size() > 0) {
-                        analysisError.setStackTrace(stackTrace.toArray(new String[stackTrace.size()]));
+                        analysisError.setStackTrace(stackTrace.toArray(new String[0]));
                     }
                     bugCollection.addError(analysisError);
                 } else if (BugCollection.MISSING_CLASS_ELEMENT_NAME.equals(qName)) {

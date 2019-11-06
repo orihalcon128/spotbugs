@@ -27,6 +27,7 @@ import javax.annotation.meta.When;
 import org.apache.bcel.Const;
 import org.apache.bcel.generic.ConstantPoolGen;
 import org.apache.bcel.generic.FieldInstruction;
+import org.apache.bcel.generic.INVOKEDYNAMIC;
 import org.apache.bcel.generic.Instruction;
 import org.apache.bcel.generic.InstructionHandle;
 import org.apache.bcel.generic.InvokeInstruction;
@@ -126,8 +127,7 @@ public class BackwardTypeQualifierDataflowAnalysis extends TypeQualifierDataflow
 
     private void pruneConflictingValues(TypeQualifierValueSet fact, TypeQualifierValueSet forwardFact) {
         if (forwardFact.isValid()) {
-            HashSet<ValueNumber> valueNumbers = new HashSet<>();
-            valueNumbers.addAll(fact.getValueNumbers());
+            HashSet<ValueNumber> valueNumbers = new HashSet<>(fact.getValueNumbers());
             valueNumbers.retainAll(forwardFact.getValueNumbers());
 
             for (ValueNumber vn : valueNumbers) {
@@ -212,6 +212,9 @@ public class BackwardTypeQualifierDataflowAnalysis extends TypeQualifierDataflow
     private void modelArguments(Location location) throws DataflowAnalysisException {
         // Model arguments to called method
         InvokeInstruction inv = (InvokeInstruction) location.getHandle().getInstruction();
+        if (inv instanceof INVOKEDYNAMIC) {
+            return;
+        }
         XMethod calledMethod = XFactory.createXMethod(inv, cpg);
 
         SignatureParser sigParser = new SignatureParser(calledMethod.getSignature());

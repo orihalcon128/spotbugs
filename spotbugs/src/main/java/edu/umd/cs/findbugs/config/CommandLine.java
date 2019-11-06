@@ -26,6 +26,7 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -37,7 +38,6 @@ import edu.umd.cs.findbugs.DetectorFactoryCollection;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import edu.umd.cs.findbugs.ba.AnalysisContext;
 import edu.umd.cs.findbugs.charsets.UTF8;
-import edu.umd.cs.findbugs.util.Util;
 
 /**
  * Helper class for parsing command line arguments.
@@ -170,7 +170,7 @@ public abstract class CommandLine {
      */
 
     public String[] expandOptionFiles(String[] argv, boolean ignoreComments, boolean ignoreBlankLines) throws IOException,
-    HelpRequestedException {
+            HelpRequestedException {
         // Add all expanded options at the end of the options list, before the
         // list of
         // jar/zip/class files and directories.
@@ -187,12 +187,9 @@ public abstract class CommandLine {
                 continue;
             }
 
-            BufferedReader reader = null;
-            try {
-                reader = UTF8.bufferedReader(new FileInputStream(arg.substring(1)));
+            try (FileInputStream stream = new FileInputStream(arg.substring(1));
+                    BufferedReader reader = UTF8.bufferedReader(stream)) {
                 addCommandLineOptions(expandedOptionsList, reader, ignoreComments, ignoreBlankLines);
-            } finally {
-                Util.closeSilently(reader);
             }
         }
         resultList.addAll(expandedOptionsList);
@@ -200,21 +197,17 @@ public abstract class CommandLine {
             resultList.add(argv[i]);
         }
 
-        return resultList.toArray(new String[resultList.size()]);
+        return resultList.toArray(new String[0]);
     }
 
     public static ArrayList<String> getAnalysisOptionProperties(boolean ignoreComments, boolean ignoreBlankLines) {
         ArrayList<String> resultList = new ArrayList<>();
         URL u = DetectorFactoryCollection.getCoreResource("analysisOptions.properties");
         if (u != null) {
-            BufferedReader reader = null;
-            try {
-                reader = UTF8.bufferedReader(u.openStream());
+            try (BufferedReader reader = UTF8.bufferedReader(u.openStream())) {
                 addCommandLineOptions(resultList, reader, ignoreComments, ignoreBlankLines);
             } catch (IOException e) {
                 AnalysisContext.logError("unable to load analysisOptions.properties", e);
-            } finally {
-                Util.closeSilently(reader);
             }
         }
         return resultList;
@@ -236,9 +229,7 @@ public abstract class CommandLine {
             if (line.length() >= 2 && line.charAt(0) == '"' && line.charAt(line.length() - 1) == '"') {
                 resultList.add(line.substring(0, line.length() - 1));
             } else {
-                for (String segment : line.split(" ")) {
-                    resultList.add(segment);
-                }
+                Collections.addAll(resultList, line.split(" "));
             }
         }
     }

@@ -50,6 +50,7 @@ import edu.umd.cs.findbugs.classfile.ClassDescriptor;
 import edu.umd.cs.findbugs.classfile.DescriptorFactory;
 import edu.umd.cs.findbugs.classfile.Global;
 import edu.umd.cs.findbugs.internalAnnotations.DottedClassName;
+import edu.umd.cs.findbugs.util.Values;
 
 /**
  * Facade for class hierarchy queries. These typically access the class
@@ -91,9 +92,11 @@ public class Hierarchy {
      * @return true if clsName is a subtype of possibleSupertypeClassName, false
      *         if not
      */
-    public static boolean isSubtype(@DottedClassName String clsName, @DottedClassName String possibleSupertypeClassName) throws ClassNotFoundException {
+    public static boolean isSubtype(@DottedClassName String clsName, @DottedClassName String possibleSupertypeClassName)
+            throws ClassNotFoundException {
         Subtypes2 subtypes2 = Global.getAnalysisCache().getDatabase(Subtypes2.class);
-        return subtypes2.isSubtype(DescriptorFactory.createClassDescriptorFromDottedClassName(clsName), DescriptorFactory.createClassDescriptorFromDottedClassName(possibleSupertypeClassName));
+        return subtypes2.isSubtype(DescriptorFactory.createClassDescriptorFromDottedClassName(clsName), DescriptorFactory
+                .createClassDescriptorFromDottedClassName(possibleSupertypeClassName));
     }
 
     /**
@@ -316,13 +319,12 @@ public class Hierarchy {
      * @return the JavaClassAndMethod, or null if no matching method can be
      *         found
      */
-    public static @CheckForNull
-    JavaClassAndMethod findInvocationLeastUpperBound(InvokeInstruction inv, ConstantPoolGen cpg) throws ClassNotFoundException {
+    public static @CheckForNull JavaClassAndMethod findInvocationLeastUpperBound(InvokeInstruction inv, ConstantPoolGen cpg)
+            throws ClassNotFoundException {
         return findInvocationLeastUpperBound(inv, cpg, ANY_METHOD);
     }
 
-    public static @CheckForNull
-    JavaClassAndMethod findInvocationLeastUpperBound(InvokeInstruction inv, ConstantPoolGen cpg,
+    public static @CheckForNull JavaClassAndMethod findInvocationLeastUpperBound(InvokeInstruction inv, ConstantPoolGen cpg,
             JavaClassAndMethodChooser methodChooser) throws ClassNotFoundException {
 
         if (DEBUG_METHOD_LOOKUP) {
@@ -345,30 +347,30 @@ public class Hierarchy {
         if (opcode == Const.INVOKESPECIAL) {
             // Non-virtual dispatch
             return findExactMethod(inv, cpg, methodChooser);
-        } else {
-            String className = inv.getClassName(cpg);
-            String methodName = inv.getName(cpg);
-            String methodSig = inv.getSignature(cpg);
-            if (DEBUG_METHOD_LOOKUP) {
-                System.out.println("[Class name is " + className + "]");
-                System.out.println("[Method name is " + methodName + "]");
-                System.out.println("[Method signature is " + methodSig + "]");
-            }
-
-            if (className.startsWith("[")) {
-                // Java 1.5 allows array classes to appear as the class name
-                className = "java.lang.Object";
-            }
-
-            JavaClass jClass = Repository.lookupClass(className);
-            return findInvocationLeastUpperBound(jClass, methodName, methodSig, methodChooser,
-                    opcode == Const.INVOKEINTERFACE);
-
         }
+        if (opcode == Const.INVOKEDYNAMIC) {
+            return null;
+        }
+        String className = inv.getClassName(cpg);
+        String methodName = inv.getName(cpg);
+        String methodSig = inv.getSignature(cpg);
+        if (DEBUG_METHOD_LOOKUP) {
+            System.out.println("[Class name is " + className + "]");
+            System.out.println("[Method name is " + methodName + "]");
+            System.out.println("[Method signature is " + methodSig + "]");
+        }
+
+        if (className.startsWith(Values.SIG_ARRAY_PREFIX)) {
+            // Java 1.5 allows array classes to appear as the class name
+            className = Values.DOTTED_JAVA_LANG_OBJECT;
+        }
+
+        JavaClass jClass = Repository.lookupClass(className);
+        return findInvocationLeastUpperBound(jClass, methodName, methodSig, methodChooser,
+                opcode == Const.INVOKEINTERFACE);
     }
 
-    public static @CheckForNull
-    JavaClassAndMethod findInvocationLeastUpperBound(JavaClass jClass, String methodName, String methodSig,
+    public static @CheckForNull JavaClassAndMethod findInvocationLeastUpperBound(JavaClass jClass, String methodName, String methodSig,
             JavaClassAndMethodChooser methodChooser, boolean invokeInterface) throws ClassNotFoundException {
         JavaClassAndMethod result = findMethod(jClass, methodName, methodSig, methodChooser);
         if (result != null) {
@@ -422,13 +424,12 @@ public class Hierarchy {
      * @return the JavaClassAndMethod, or null if no such method exists in the
      *         class
      */
-    public static @CheckForNull
-    JavaClassAndMethod findMethod(JavaClass javaClass, String methodName, String methodSig) {
+    public static @CheckForNull JavaClassAndMethod findMethod(JavaClass javaClass, String methodName, String methodSig) {
         return findMethod(javaClass, methodName, methodSig, ANY_METHOD);
     }
 
-    public static @CheckForNull
-    JavaClassAndMethod findMethod(JavaClass javaClass, String methodName, String methodSig, JavaClassAndMethodChooser chooser) {
+    public static @CheckForNull JavaClassAndMethod findMethod(JavaClass javaClass, String methodName, String methodSig,
+            JavaClassAndMethodChooser chooser) {
         if (DEBUG_METHOD_LOOKUP) {
             System.out.println("Check " + javaClass.getClassName());
         }
@@ -464,8 +465,7 @@ public class Hierarchy {
      * @return the JavaClassAndMethod, or null if no such method exists in the
      *         class
      */
-    public static @CheckForNull
-    XMethod findMethod(ClassDescriptor classDesc, String methodName, String methodSig, boolean isStatic) {
+    public static @CheckForNull XMethod findMethod(ClassDescriptor classDesc, String methodName, String methodSig, boolean isStatic) {
         if (DEBUG_METHOD_LOOKUP) {
             System.out.println("Check " + classDesc.getClassName());
         }
@@ -493,8 +493,7 @@ public class Hierarchy {
      *         class
      */
     @Deprecated
-    public static @CheckForNull
-    JavaClassAndMethod findConcreteMethod(JavaClass javaClass, String methodName, String methodSig) {
+    public static @CheckForNull JavaClassAndMethod findConcreteMethod(JavaClass javaClass, String methodName, String methodSig) {
 
         if (DEBUG_METHOD_LOOKUP) {
             System.out.println("Check " + javaClass.getClassName());
@@ -530,8 +529,7 @@ public class Hierarchy {
      * @return the XMethod, or null if no such method exists in the class
      */
     @Deprecated
-    public static @CheckForNull
-    XMethod findXMethod(JavaClass javaClass, String methodName, String methodSig, JavaClassAndMethodChooser chooser) {
+    public static @CheckForNull XMethod findXMethod(JavaClass javaClass, String methodName, String methodSig, JavaClassAndMethodChooser chooser) {
         JavaClassAndMethod result = findMethod(javaClass, methodName, methodSig, chooser);
         return result == null ? null : XFactory.createXMethod(result.getJavaClass(), result.getMethod());
     }
@@ -803,7 +801,7 @@ public class Hierarchy {
         // Array method calls aren't virtual.
         // They should just resolve to Object methods.
         if (receiverType instanceof ArrayType) {
-            JavaClass javaLangObject = AnalysisContext.currentAnalysisContext().lookupClass("java.lang.Object");
+            JavaClass javaLangObject = AnalysisContext.currentAnalysisContext().lookupClass(Values.DOTTED_JAVA_LANG_OBJECT);
             JavaClassAndMethod classAndMethod = findMethod(javaLangObject, methodName, methodSig, INSTANCE_METHOD);
             if (classAndMethod != null) {
                 result.add(classAndMethod);
@@ -812,7 +810,7 @@ public class Hierarchy {
         }
 
         if (receiverType instanceof NullType) {
-            return Collections.<JavaClassAndMethod> emptySet();
+            return Collections.<JavaClassAndMethod>emptySet();
         }
         AnalysisContext analysisContext = AnalysisContext.currentAnalysisContext();
 
@@ -841,7 +839,7 @@ public class Hierarchy {
                 && !receiverTypeIsExact;
 
         if (virtualCall) {
-            if (!"java.lang.Object".equals(receiverClassName)) {
+            if (!Values.DOTTED_JAVA_LANG_OBJECT.equals(receiverClassName)) {
 
                 // This is a true virtual call: assume that any concrete
                 // subtype method may be called.
@@ -855,7 +853,7 @@ public class Hierarchy {
                 if (false && subTypeSet.size() > 500) {
                     new RuntimeException(receiverClassName + " has " + subTypeSet.size() + " subclasses, " + result.size()
                             + " of which implement " + methodName + methodSig + " " + invokeInstruction)
-                    .printStackTrace(System.out);
+                                    .printStackTrace(System.out);
                 }
 
             }
@@ -918,8 +916,7 @@ public class Hierarchy {
      * @return an XField object representing the field, or null if no such field
      *         could be found
      */
-    public static XField findXField(String className, String fieldName, String fieldSig, boolean isStatic)
-    {
+    public static XField findXField(String className, String fieldName, String fieldSig, boolean isStatic) {
 
         return XFactory.createXField(className, fieldName, fieldSig, isStatic);
     }
@@ -992,4 +989,3 @@ public class Hierarchy {
     }
 
 }
-

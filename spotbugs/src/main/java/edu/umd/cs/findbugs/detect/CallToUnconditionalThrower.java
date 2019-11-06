@@ -25,6 +25,7 @@ import java.util.Set;
 import org.apache.bcel.Const;
 import org.apache.bcel.classfile.Method;
 import org.apache.bcel.generic.ConstantPoolGen;
+import org.apache.bcel.generic.INVOKEDYNAMIC;
 import org.apache.bcel.generic.INVOKEINTERFACE;
 import org.apache.bcel.generic.Instruction;
 import org.apache.bcel.generic.InstructionHandle;
@@ -98,7 +99,7 @@ public class CallToUnconditionalThrower extends PreorderVisitor implements Detec
             boolean foundThrower = false;
             boolean foundNonThrower = false;
 
-            if (inv instanceof INVOKEINTERFACE) {
+            if (inv instanceof INVOKEINTERFACE || inv instanceof INVOKEDYNAMIC) {
                 continue;
             }
 
@@ -147,9 +148,9 @@ public class CallToUnconditionalThrower extends PreorderVisitor implements Detec
             boolean newResult = foundThrower && !foundNonThrower;
             if (newResult) {
                 bugReporter.reportBug(new BugInstance(this, "TESTING", Priorities.NORMAL_PRIORITY)
-                .addClassAndMethod(classContext.getJavaClass(), method)
-                .addString("Call to method that always throws Exception").addMethod(primaryXMethod)
-                .describe(MethodAnnotation.METHOD_CALLED).addSourceLine(classContext, method, loc));
+                        .addClassAndMethod(classContext.getJavaClass(), method)
+                        .addString("Call to method that always throws Exception").addMethod(primaryXMethod)
+                        .describe(MethodAnnotation.METHOD_CALLED).addSourceLine(classContext, method, loc));
             }
 
         }
@@ -158,7 +159,7 @@ public class CallToUnconditionalThrower extends PreorderVisitor implements Detec
 
     @Override
     public void visitClassContext(ClassContext classContext) {
-        if(!testingEnabled){
+        if (!testingEnabled) {
             return;
         }
         analysisContext = AnalysisContext.currentAnalysisContext();

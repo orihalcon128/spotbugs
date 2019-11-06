@@ -174,7 +174,7 @@ public class LoadOfKnownNullValue implements Detector {
                 int position = location
                         .getHandle().getPosition();
                 int catchSizeANY = Util.getSizeOfSurroundingTryBlock(method, "", position);
-                if (catchSizeANY < Integer.MAX_VALUE && isNullTestedClose( classContext, load, nextHandle, next)) {
+                if (catchSizeANY < Integer.MAX_VALUE && isNullTestedClose(classContext, load, nextHandle, next)) {
                     continue;
                 }
                 InstructionHandle prevHandle = handle.getPrev();
@@ -248,7 +248,7 @@ public class LoadOfKnownNullValue implements Detector {
 
                 bugAccumulator.accumulateBug(
                         new BugInstance(this, "NP_LOAD_OF_KNOWN_NULL_VALUE", priority).addClassAndMethod(methodGen, sourceFile)
-                        .addOptionalAnnotation(variableAnnotation),
+                                .addOptionalAnnotation(variableAnnotation),
                         sourceLineAnnotation);
             }
 
@@ -290,19 +290,11 @@ public class LoadOfKnownNullValue implements Detector {
         INVOKEVIRTUAL invokeVirtual = (INVOKEVIRTUAL) nextNextNextInstruction;
         String methodName = invokeVirtual.getMethodName(classContext.getConstantPoolGen());
         String methodSig = invokeVirtual.getSignature(classContext.getConstantPoolGen());
-        if (!"close".equals(methodName)) {
-            return false;
-        }
-        if (!"()V".equals(methodSig)) {
+        if (!"close".equals(methodName) || !"()V".equals(methodSig)) {
             return false;
         }
         InstructionHandle nextNextNextNextHandle = nextNextNextHandle.getNext(); // after
-        if (ifNull.getTarget() != nextNextNextNextHandle) {
-            return false;
-        }
-
-        return true;
-
+        return ifNull.getTarget() == nextNextNextNextHandle;
     }
 
     @Override

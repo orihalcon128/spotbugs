@@ -165,7 +165,7 @@ public class MutableStaticFields extends BytecodeScanningDetector {
 
     @Override
     public void sawOpcode(int seen) {
-        // System.out.println("saw\t" + OPCODE_NAMES[seen] + "\t" + zeroOnTOS);
+        // System.out.println("saw\t" + Const.getOpcodeName(seen) + "\t" + zeroOnTOS);
         switch (seen) {
         case Const.GETSTATIC:
         case Const.PUTSTATIC:
@@ -245,7 +245,8 @@ public class MutableStaticFields extends BytecodeScanningDetector {
                             && MUTABLE_COLLECTION_CLASSES.contains(superclassDescriptor.getClassName())) {
                         mutableCollectionJustCreated = true;
                         for (XMethod xMethod : xClass.getXMethods()) {
-                            if (xMethod != null && !Const.CONSTRUCTOR_NAME.equals(xMethod.getName()) && !Const.STATIC_INITIALIZER_NAME.equals(xMethod.getName())) {
+                            if (xMethod != null && !Const.CONSTRUCTOR_NAME.equals(xMethod.getName()) && !Const.STATIC_INITIALIZER_NAME.equals(xMethod
+                                    .getName())) {
                                 mutableCollectionJustCreated = false;
                                 break;
                             }
@@ -296,12 +297,8 @@ public class MutableStaticFields extends BytecodeScanningDetector {
         if (!f.isFinal()) {
             return true;
         }
-        boolean isArray = f.getSignature().charAt(0) == '[';
-        if (!(isArray || isCollection(f.getSignature()))) {
-            return false;
-        }
-        return true;
-
+        String fieldSig = f.getSignature();
+        return fieldSig.charAt(0) == '[' || isCollection(fieldSig);
     }
 
     @Override

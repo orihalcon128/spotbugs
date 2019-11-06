@@ -95,7 +95,7 @@ import edu.umd.cs.findbugs.internalAnnotations.SlashedClassName;
  * @author <A HREF="http://www.inf.fu-berlin.de/~dahm">M. Dahm</A>
  * @version 970819
  */
-public class PreorderVisitor extends BetterVisitor implements Constants2 {
+public class PreorderVisitor extends BetterVisitor {
 
     // Available when visiting a class
     private ConstantPool constantPool;
@@ -285,7 +285,7 @@ public class PreorderVisitor extends BetterVisitor implements Constants2 {
         try {
             fieldName = fieldSig = dottedFieldSig = fullyQualifiedFieldName = null;
             thisFieldInfo = (FieldInfo) thisClassInfo.findField(getFieldName(), getFieldSig(), field.isStatic());
-            assert thisFieldInfo !=  null : "Can't get field info for " + getFullyQualifiedFieldName();
+            assert thisFieldInfo != null : "Can't get field info for " + getFullyQualifiedFieldName();
             fieldIsStatic = field.isStatic();
             field.accept(this);
             Attribute[] attributes = field.getAttributes();
@@ -325,16 +325,9 @@ public class PreorderVisitor extends BetterVisitor implements Constants2 {
         if (!visitingMethod) {
             throw new IllegalStateException("Not visiting a method");
         }
-        if (!method.isStatic()) {
-            return false;
-        }
-        if (!"main".equals(getMethodName())) {
-            return false;
-        }
-        if (!"([Ljava/lang/String;)V".equals(getMethodSig())) {
-            return false;
-        }
-        return true;
+        return method.isStatic()
+                && "main".equals(getMethodName())
+                && "([Ljava/lang/String;)V".equals(getMethodSig());
 
     }
 
@@ -369,6 +362,7 @@ public class PreorderVisitor extends BetterVisitor implements Constants2 {
     protected Iterable<Method> getMethodVisitOrder(JavaClass obj) {
         return Arrays.asList(obj.getMethods());
     }
+
     // General classes
     @Override
     public void visitJavaClass(JavaClass obj) {
@@ -489,14 +483,12 @@ public class PreorderVisitor extends BetterVisitor implements Constants2 {
      * Get the slash-formatted class name for the current or most recently
      * visited class
      */
-    public @SlashedClassName
-    String getClassName() {
+    public @SlashedClassName String getClassName() {
         return className;
     }
 
     /** Get the dotted class name for the current or most recently visited class */
-    public @DottedClassName
-    String getDottedClassName() {
+    public @DottedClassName String getDottedClassName() {
         return dottedClassName;
     }
 
@@ -517,8 +509,7 @@ public class PreorderVisitor extends BetterVisitor implements Constants2 {
      * Get the slash-formatted superclass name for the current or most recently
      * visited class
      */
-    public @SlashedClassName
-    String getSuperclassName() {
+    public @SlashedClassName String getSuperclassName() {
         return superclassName;
     }
 
@@ -526,8 +517,7 @@ public class PreorderVisitor extends BetterVisitor implements Constants2 {
      * Get the dotted superclass name for the current or most recently visited
      * class
      */
-    public @DottedClassName
-    String getDottedSuperclassName() {
+    public @DottedClassName String getDottedSuperclassName() {
         return dottedSuperclassName;
     }
 
@@ -640,16 +630,16 @@ public class PreorderVisitor extends BetterVisitor implements Constants2 {
      * @return true if method is found
      */
     public static boolean hasInterestingMethod(ConstantPool cp, Collection<MethodDescriptor> methods) {
-        for(Constant c : cp.getConstantPool()) {
-            if(c instanceof ConstantMethodref || c instanceof ConstantInterfaceMethodref) {
-                ConstantCP desc = (ConstantCP)c;
+        for (Constant c : cp.getConstantPool()) {
+            if (c instanceof ConstantMethodref || c instanceof ConstantInterfaceMethodref) {
+                ConstantCP desc = (ConstantCP) c;
                 ConstantNameAndType nameAndType = (ConstantNameAndType) cp.getConstant(desc.getNameAndTypeIndex());
                 String className = cp.getConstantString(desc.getClassIndex(), Const.CONSTANT_Class);
-                String name = ((ConstantUtf8)cp.getConstant(nameAndType.getNameIndex())).getBytes();
-                String signature = ((ConstantUtf8)cp.getConstant(nameAndType.getSignatureIndex())).getBytes();
+                String name = ((ConstantUtf8) cp.getConstant(nameAndType.getNameIndex())).getBytes();
+                String signature = ((ConstantUtf8) cp.getConstant(nameAndType.getSignatureIndex())).getBytes();
                 // We don't know whether method is static thus cannot use equals
                 int hash = FieldOrMethodDescriptor.getNameSigHashCode(name, signature);
-                for(MethodDescriptor method : methods) {
+                for (MethodDescriptor method : methods) {
                     if (method.getNameSigHashCode() == hash
                             && (method.getSlashedClassName().isEmpty() || method.getSlashedClassName().equals(className))
                             && method.getName().equals(name) && method.getSignature().equals(signature)) {
@@ -662,10 +652,10 @@ public class PreorderVisitor extends BetterVisitor implements Constants2 {
     }
 
     public static boolean hasInterestingClass(ConstantPool cp, Collection<String> classes) {
-        for(Constant c : cp.getConstantPool()) {
-            if(c instanceof ConstantClass) {
-                String className = ((ConstantUtf8)cp.getConstant(((ConstantClass)c).getNameIndex())).getBytes();
-                if(classes.contains(className)) {
+        for (Constant c : cp.getConstantPool()) {
+            if (c instanceof ConstantClass) {
+                String className = ((ConstantUtf8) cp.getConstant(((ConstantClass) c).getNameIndex())).getBytes();
+                if (classes.contains(className)) {
                     return true;
                 }
             }

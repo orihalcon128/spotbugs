@@ -87,13 +87,14 @@ public class FindSelfComparison2 implements Detector {
     }
 
     static boolean booleanComparisonMethod(String methodName) {
-        return "equals".equals(methodName) ||"endsWith".equals(methodName) || "startsWith".equals(methodName)
+        return "equals".equals(methodName) || "endsWith".equals(methodName) || "startsWith".equals(methodName)
                 || "contains".equals(methodName) || "equalsIgnoreCase".equals(methodName);
     }
 
     static boolean comparatorMethod(String methodName) {
-        return  "compareTo".equals(methodName) || "compareToIgnoreCase".equals(methodName);
+        return "compareTo".equals(methodName) || "compareToIgnoreCase".equals(methodName);
     }
+
     private void analyzeMethod(ClassContext classContext, Method method) throws CFGBuilderException, DataflowAnalysisException {
         CFG cfg = classContext.getCFG(method);
         ValueNumberDataflow valueNumberDataflow = classContext.getValueNumberDataflow(method);
@@ -110,7 +111,7 @@ public class FindSelfComparison2 implements Detector {
             case INVOKEINTERFACE:
                 InvokeInstruction iins = (InvokeInstruction) ins;
                 String invoking = iins.getName(cpg);
-                if ( comparatorMethod(invoking) || booleanComparisonMethod(invoking) ) {
+                if (comparatorMethod(invoking) || booleanComparisonMethod(invoking)) {
                     if (methodGen.getName().toLowerCase().indexOf("test") >= 0) {
                         break;
                     }
@@ -127,7 +128,7 @@ public class FindSelfComparison2 implements Detector {
 
                     SignatureParser parser = new SignatureParser(sig);
                     if (parser.getNumParameters() == 1
-                            && ( booleanComparisonMethod(invoking)  && sig.endsWith(";)Z") || comparatorMethod(invoking) && sig.endsWith(";)I"))) {
+                            && (booleanComparisonMethod(invoking) && sig.endsWith(";)Z") || comparatorMethod(invoking) && sig.endsWith(";)I"))) {
                         checkForSelfOperation(classContext, location, valueNumberDataflow, "COMPARISON", method, methodGen,
                                 sourceFile);
                     }
@@ -205,14 +206,7 @@ public class FindSelfComparison2 implements Detector {
         BugAnnotation annotation;
         String prefix;
         if (field != null) {
-            if (field.isVolatile()) {
-                return;
-            }
-            if (true) {
-                return; // don't report these; too many false positives
-            }
-            //            annotation = FieldAnnotation.fromXField(field);
-            //            prefix = "SA_FIELD_SELF_";
+            return; // don't report non-volatiles; too many false positives
         } else {
             annotation = ValueNumberSourceInfo.findLocalAnnotationFromValueNumber(method, location, v0, frame);
             prefix = "SA_LOCAL_SELF_";
@@ -236,7 +230,7 @@ public class FindSelfComparison2 implements Detector {
         }
 
         bug.add(annotation)
-        .addSourceLine(classContext, methodGen, sourceFile, location.getHandle());
+                .addSourceLine(classContext, methodGen, sourceFile, location.getHandle());
         bugReporter.reportBug(bug);
     }
 

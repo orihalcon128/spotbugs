@@ -33,6 +33,7 @@ import org.apache.bcel.classfile.ConstantClass;
 import org.apache.bcel.classfile.ConstantNameAndType;
 import org.apache.bcel.classfile.JavaClass;
 import org.apache.bcel.generic.ConstantPoolGen;
+import org.apache.bcel.generic.INVOKEDYNAMIC;
 import org.apache.bcel.generic.Instruction;
 import org.apache.bcel.generic.InstructionHandle;
 import org.apache.bcel.generic.InvokeInstruction;
@@ -324,7 +325,8 @@ public class FindUnsatisfiedObligation extends CFGDetector {
             if (methodDescriptor.getName().equals(Const.CONSTRUCTOR_NAME)) {
                 try {
 
-                    if (subtypes2.isSubtype(methodDescriptor.getClassDescriptor(), DescriptorFactory.createClassDescriptorFromDottedClassName(obligation.getClassName()))) {
+                    if (subtypes2.isSubtype(methodDescriptor.getClassDescriptor(), DescriptorFactory.createClassDescriptorFromDottedClassName(
+                            obligation.getClassName()))) {
                         return;
                     }
 
@@ -376,10 +378,10 @@ public class FindUnsatisfiedObligation extends CFGDetector {
             List<PossibleObligationTransfer> transferList;
 
             public PostProcessingPathVisitor(Obligation possiblyLeakedObligation/*
-             * ,
-             * int
-             * initialLeakCount
-             */, State state) {
+                                                                                * ,
+                                                                                * int
+                                                                                * initialLeakCount
+                                                                                */, State state) {
                 this.possiblyLeakedObligation = possiblyLeakedObligation;
                 this.state = state;
                 this.adjustedLeakCount = state.getObligationSet().getCount(possiblyLeakedObligation.getId());
@@ -415,7 +417,7 @@ public class FindUnsatisfiedObligation extends CFGDetector {
                     Instruction ins = handle.getInstruction();
                     short opcode = ins.getOpcode();
                     if (DEBUG) {
-                        System.out.printf("%3d %s%n", handle.getPosition(),Const.getOpcodeName(opcode));
+                        System.out.printf("%3d %s%n", handle.getPosition(), Const.getOpcodeName(opcode));
                     }
 
                     if (opcode == Const.PUTFIELD || opcode == Const.PUTSTATIC || opcode == Const.ARETURN) {
@@ -512,7 +514,9 @@ public class FindUnsatisfiedObligation extends CFGDetector {
                 // there must be an instance of InputStream at
                 // the transfer point.
                 //
-
+                if (inv instanceof INVOKEDYNAMIC) {
+                    return;
+                }
                 if (DEBUG_FP) {
                     System.out.println("Checking " + handle + " as possible obligation transfer...:");
                 }
@@ -678,7 +682,7 @@ public class FindUnsatisfiedObligation extends CFGDetector {
                             if (entryState.getObligationSet().getCount(obligation.getId()) > 0) {
                                 lastSourceLine = SourceLineAnnotation.forFirstLineOfMethod(methodDescriptor);
                                 lastSourceLine
-                                .setDescription(SourceLineAnnotation.ROLE_OBLIGATION_CREATED_BY_WILLCLOSE_PARAMETER);
+                                        .setDescription(SourceLineAnnotation.ROLE_OBLIGATION_CREATED_BY_WILLCLOSE_PARAMETER);
                                 bugInstance.add(lastSourceLine);
                                 sawFirstCreation = true;
 

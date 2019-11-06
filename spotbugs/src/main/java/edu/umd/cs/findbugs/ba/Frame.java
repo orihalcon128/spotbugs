@@ -632,10 +632,8 @@ public abstract class Frame<ValueType> {
                 // Use a "|" character to visually separate locals from
                 // the operand stack.
                 int last = buf.length() - 1;
-                if (last >= 0) {
-                    if (buf.charAt(last) == ',') {
-                        buf.deleteCharAt(last);
-                    }
+                if (last >= 0 && buf.charAt(last) == ',') {
+                    buf.deleteCharAt(last);
                 }
                 buf.append('|');
             }
@@ -668,9 +666,9 @@ public abstract class Frame<ValueType> {
      */
     public Collection<ValueType> allSlots() {
         if (slotList == null) {
-            return Collections.<ValueType> emptyList();
+            return Collections.<ValueType>emptyList();
         }
-        return Collections.<ValueType> unmodifiableCollection(slotList);
+        return Collections.<ValueType>unmodifiableCollection(slotList);
     }
 
     /**
@@ -689,4 +687,3 @@ public abstract class Frame<ValueType> {
     }
 
 }
-

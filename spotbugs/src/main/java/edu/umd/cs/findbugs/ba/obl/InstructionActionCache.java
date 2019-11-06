@@ -32,6 +32,7 @@ import javax.annotation.WillClose;
 import org.apache.bcel.Const;
 import org.apache.bcel.generic.ARETURN;
 import org.apache.bcel.generic.ConstantPoolGen;
+import org.apache.bcel.generic.INVOKEDYNAMIC;
 import org.apache.bcel.generic.Instruction;
 import org.apache.bcel.generic.InstructionHandle;
 import org.apache.bcel.generic.InvokeInstruction;
@@ -84,13 +85,16 @@ public class InstructionActionCache {
     }
 
     static final ClassDescriptor WILL_CLOSE = DescriptorFactory.createClassDescriptor(WillClose.class);
+
     public Collection<ObligationPolicyDatabaseAction> getActions(BasicBlock block, InstructionHandle handle) {
         Collection<ObligationPolicyDatabaseAction> actionList = actionCache.get(handle);
         if (actionList == null) {
             Instruction ins = handle.getInstruction();
             actionList = Collections.emptyList();
             if (ins instanceof InvokeInstruction) {
-
+                if (ins instanceof INVOKEDYNAMIC) {
+                    return actionList;
+                }
                 InvokeInstruction inv = (InvokeInstruction) ins;
                 XMethod invokedMethod = XFactory.createXMethod(inv, cpg);
                 String signature = invokedMethod.getSignature();
@@ -127,7 +131,7 @@ public class InstructionActionCache {
                                 if (annotations.contains(WILL_CLOSE) || "Ljava/io/Closeable;".equals(sig) || methodName.startsWith("close")) {
                                     // closing this value
                                     if (factAtLocation == null) {
-                                        factAtLocation = typeDataflow.getFactAtLocation( new Location(handle, block));
+                                        factAtLocation = typeDataflow.getFactAtLocation(new Location(handle, block));
                                     }
 
                                     Type argumentType = factAtLocation.getArgument(inv, cpg, i, sigParser);
@@ -146,7 +150,8 @@ public class InstructionActionCache {
                             AnalysisContext.logError("Error checking " + invokedMethod, e);
                         } catch (ClassNotFoundException e) {
                             AnalysisContext.reportMissingClass(e);
-                        } finally { }
+                        } finally {
+                        }
 
 
                     }
@@ -192,15 +197,15 @@ public class InstructionActionCache {
         return actionList;
     }
 
-    public boolean addsObligation(BasicBlock block,InstructionHandle handle,  Obligation obligation) {
+    public boolean addsObligation(BasicBlock block, InstructionHandle handle, Obligation obligation) {
         return hasAction(block, handle, obligation, ObligationPolicyDatabaseActionType.ADD);
     }
 
-    public boolean deletesObligation(BasicBlock block,InstructionHandle handle, Obligation obligation) {
+    public boolean deletesObligation(BasicBlock block, InstructionHandle handle, Obligation obligation) {
         return hasAction(block, handle, obligation, ObligationPolicyDatabaseActionType.DEL);
     }
 
-    private boolean hasAction(BasicBlock block, InstructionHandle handle,Obligation obligation,
+    private boolean hasAction(BasicBlock block, InstructionHandle handle, Obligation obligation,
             ObligationPolicyDatabaseActionType actionType) {
         Collection<ObligationPolicyDatabaseAction> actionList = getActions(block, handle);
         for (ObligationPolicyDatabaseAction action : actionList) {

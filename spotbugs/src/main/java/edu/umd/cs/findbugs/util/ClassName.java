@@ -1,6 +1,6 @@
 /*
  * FindBugs - Find Bugs in Java programs
- * Copyright (C) 2006, University of Maryland
+ * Copyright (C) 2006-2018, University of Maryland
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -37,14 +37,14 @@ public abstract class ClassName {
         return "java/lang/Math".equals(className) || "java/lang/StrictMath".equals(className);
     }
 
-    public static @DottedClassName String assertIsDotted(@DottedClassName String className) {
+    public static void assertIsDotted(@DottedClassName String className) {
         assert className.indexOf('/') == -1 : "Not dotted: " + className;
-        return className;
     }
-    public static @SlashedClassName String assertIsSlashed(@SlashedClassName String className) {
+
+    public static void assertIsSlashed(@SlashedClassName String className) {
         assert className.indexOf('.') == -1 : "Not slashed: " + className;
-        return className;
     }
+
     public static String toSignature(@SlashedClassName String className) {
         if (className.length() == 0) {
             throw new IllegalArgumentException("classname can't be empty");
@@ -93,9 +93,7 @@ public abstract class ClassName {
      * Returns null if it is the signature for an array or
      * primitive type.
      */
-    public static @CheckForNull
-    @SlashedClassName
-    String fromFieldSignature(String signature) {
+    public static @CheckForNull @SlashedClassName String fromFieldSignature(String signature) {
         if (signature.charAt(0) != 'L') {
             return null;
         }
@@ -144,8 +142,7 @@ public abstract class ClassName {
      *            a dotted class name
      * @return the name of the package containing the class
      */
-    public static @DottedClassName
-    String extractPackageName(@DottedClassName String className) {
+    public static @DottedClassName String extractPackageName(@DottedClassName String className) {
         int i = className.lastIndexOf('.');
         if (i < 0) {
             return "";
@@ -178,10 +175,7 @@ public abstract class ClassName {
     public static boolean isValidClassName(String className) {
         // FIXME: should use a regex
 
-        if (className.indexOf('(') >= 0) {
-            return false;
-        }
-        return true;
+        return className.indexOf('(') < 0;
     }
 
     /**
@@ -212,8 +206,8 @@ public abstract class ClassName {
     public static boolean isAnonymous(String className) {
         int i = className.lastIndexOf('$');
         if (i >= 0 && ++i < className.length()) {
-            while(i < className.length()) {
-                if(!Character.isDigit(className.charAt(i))) {
+            while (i < className.length()) {
+                if (!Character.isDigit(className.charAt(i))) {
                     return false;
                 }
                 i++;
@@ -230,8 +224,7 @@ public abstract class ClassName {
      *            JVM classname or signature
      * @return a slashed classname
      */
-    public static @SlashedClassName
-    String extractClassName(String originalName) {
+    public static @SlashedClassName String extractClassName(String originalName) {
         String name = originalName;
         if (name.charAt(0) != '[' && name.charAt(name.length() - 1) != ';') {
             return name;

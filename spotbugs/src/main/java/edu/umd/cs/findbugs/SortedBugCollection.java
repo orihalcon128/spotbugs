@@ -463,10 +463,10 @@ public class SortedBugCollection implements BugCollection {
         xmlOutput.openTag(
                 ROOT_ELEMENT_NAME,
                 new XMLAttributeList().addAttribute("version", analysisVersion)
-                .addAttribute("sequence", String.valueOf(getSequenceNumber()))
-                .addAttribute("timestamp", String.valueOf(getTimestamp()))
-                .addAttribute("analysisTimestamp", String.valueOf(getAnalysisTimestamp()))
-                .addAttribute("release", getReleaseName()));
+                        .addAttribute("sequence", String.valueOf(getSequenceNumber()))
+                        .addAttribute("timestamp", String.valueOf(getTimestamp()))
+                        .addAttribute("analysisTimestamp", String.valueOf(getAnalysisTimestamp()))
+                        .addAttribute("release", getReleaseName()));
         project.writeXML(xmlOutput, null, this);
     }
 
@@ -617,8 +617,7 @@ public class SortedBugCollection implements BugCollection {
     private void writeBugPatterns(XMLOutput xmlOutput) throws IOException {
         // Find bug types reported
         Set<String> bugTypeSet = new HashSet<>();
-        for (Iterator<BugInstance> i = iterator(); i.hasNext();) {
-            BugInstance bugInstance = i.next();
+        for (BugInstance bugInstance : this) {
             BugPattern bugPattern = bugInstance.getBugPattern();
             bugTypeSet.add(bugPattern.getType());
         }
@@ -653,8 +652,7 @@ public class SortedBugCollection implements BugCollection {
     private void writeBugCodes(XMLOutput xmlOutput) throws IOException {
         // Find bug codes reported
         Set<String> bugCodeSet = new HashSet<>();
-        for (Iterator<BugInstance> i = iterator(); i.hasNext();) {
-            BugInstance bugInstance = i.next();
+        for (BugInstance bugInstance : this) {
             String bugCode = bugInstance.getAbbrev();
             if (bugCode != null) {
                 bugCodeSet.add(bugCode);
@@ -686,8 +684,7 @@ public class SortedBugCollection implements BugCollection {
     private void writeBugCategories(XMLOutput xmlOutput) throws IOException {
         // Find bug categories reported
         Set<String> bugCatSet = new HashSet<>();
-        for (Iterator<BugInstance> i = iterator(); i.hasNext();) {
-            BugInstance bugInstance = i.next();
+        for (BugInstance bugInstance : this) {
             BugPattern bugPattern = bugInstance.getBugPattern();
             bugCatSet.add(bugPattern.getCategory());
         }
@@ -786,16 +783,13 @@ public class SortedBugCollection implements BugCollection {
 
         in.reset();
 
-        BufferedReader reader = new BufferedReader(Util.getReader(new ByteArrayInputStream(buf)));
-        try {
+        try (BufferedReader reader = new BufferedReader(Util.getReader(new ByteArrayInputStream(buf)))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 if (line.startsWith("<BugCollection")) {
                     return;
                 }
             }
-        } finally {
-            reader.close();
         }
 
         throw new IOException("XML does not contain saved bug data");
@@ -850,7 +844,7 @@ public class SortedBugCollection implements BugCollection {
 
     public static class MultiversionBugInstanceComparator extends BugInstanceComparator {
 
-        private MultiversionBugInstanceComparator(){
+        private MultiversionBugInstanceComparator() {
         }
 
         @Override
@@ -1012,7 +1006,7 @@ public class SortedBugCollection implements BugCollection {
         }
         if (className.startsWith("[")) {
             assert false : "Bad class name " + className;
-        return;
+            return;
         }
         if (className.endsWith(";")) {
             addError("got signature rather than classname: " + className, new IllegalArgumentException());
@@ -1087,7 +1081,7 @@ public class SortedBugCollection implements BugCollection {
         if (sequence == 0) {
             return false;
         }
-        for(BugInstance b : bugSet) {
+        for (BugInstance b : bugSet) {
             if (b.isDead()) {
                 return true;
             }
@@ -1249,7 +1243,7 @@ public class SortedBugCollection implements BugCollection {
 
     public InputStream progessMonitoredInputStream(File f, String msg) throws IOException {
         long length = f.length();
-        if (length > Integer.MAX_VALUE){
+        if (length > Integer.MAX_VALUE) {
             throw new IllegalArgumentException("File " + f + " is too big at " + length + " bytes");
         }
         InputStream in = new FileInputStream(f);
@@ -1305,4 +1299,3 @@ public class SortedBugCollection implements BugCollection {
         return bugSet.stream().map(Object::toString).collect(Collectors.joining(",", "[", "]"));
     }
 }
-

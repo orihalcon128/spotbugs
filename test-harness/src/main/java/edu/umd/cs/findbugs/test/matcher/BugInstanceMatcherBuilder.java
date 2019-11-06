@@ -37,6 +37,7 @@ public class BugInstanceMatcherBuilder {
     private String className;
     private String methodName;
     private String fieldName;
+    private String variableName;
     private Integer lineNumber;
     private Integer lineNumberApprox;
     private Confidence confidence;
@@ -60,6 +61,11 @@ public class BugInstanceMatcherBuilder {
 
     public BugInstanceMatcherBuilder atField(String fieldName) {
         this.fieldName = fieldName;
+        return this;
+    }
+
+    public BugInstanceMatcherBuilder atVariable(String variableName) {
+        this.variableName = variableName;
         return this;
     }
 
@@ -117,7 +123,7 @@ public class BugInstanceMatcherBuilder {
             }
         }
 
-        return new BugInstanceMatcher(bugType, className, methodName, fieldName, lineNumber,
+        return new BugInstanceMatcher(bugType, className, methodName, fieldName, variableName, lineNumber,
                 lineNumberApprox, confidence, jspFile, multipleChoicesLine);
     }
 
@@ -125,7 +131,7 @@ public class BugInstanceMatcherBuilder {
         final ClassFileLocator locator = new ClassFileLocator();
         final File smapFile = new File(locator.getJspFilePath(jspFile) + ".smap");
         if (!smapFile.exists()) {
-            throw new RuntimeException("SMAP File are missing. ("+smapFile+")");
+            throw new RuntimeException("SMAP File are missing. (" + smapFile + ")");
         }
         try {
             //Convert
@@ -133,13 +139,12 @@ public class BugInstanceMatcherBuilder {
             final SmapParser smapParser = new SmapParser(contents);
             final List<Integer> javaLineNumbers = smapParser.getJavaLineNumbers(jspLine);
             if (javaLineNumbers.isEmpty()) {
-                throw new RuntimeException("Unable to find the mapping for the JSP line "+jspLine);
+                throw new RuntimeException("Unable to find the mapping for the JSP line " + jspLine);
             }
 
             return javaLineNumbers;
-        }
-        catch (IOException e) {
-            throw new RuntimeException("Unable to open the smap file.",e);
+        } catch (IOException e) {
+            throw new RuntimeException("Unable to open the smap file.", e);
         }
     }
 
